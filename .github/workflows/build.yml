@@ -10,6 +10,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Least privilege: the token is only used by checkout. Secrets are real
+    # only as runner env vars - never committed - so a public repo is fine.
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v5
 

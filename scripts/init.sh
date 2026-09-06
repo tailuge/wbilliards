@@ -27,13 +27,33 @@ docker run --rm -it \
 cp "$BOOT_DIR/twa-manifest.json" .
 cp "$BOOT_DIR/android.keystore" .
 
+# The init output records the keystore's absolute path into the scratch dir.
+# Normalize it to a repo-relative path so no machine-specific path is ever
+# committed to a public repo (CI signs with --signingKeyPath=android.keystore
+# regardless of what this field says).
+if command -v python3 >/dev/null 2>&1; then
+  python3 - <<'PY'
+import json
+
+with open("twa-manifest.json") as f:
+    manifest = json.load(f)
+manifest.setdefault("signingKey", {})["path"] = "android.keystore"
+with open("twa-manifest.json", "w") as f:
+    json.dump(manifest, f, indent=2)
+    f.write("\n")
+PY
+else
+  echo "warning: python3 not found - set signingKey.path to \"android.keystore\" in twa-manifest.json before committing"
+fi
+
 cat <<'EOF'
 
 Bootstrap complete. Next steps:
 
 1. Review twa-manifest.json (generated - it replaces the committed draft):
      git diff -- twa-manifest.json
-   Check packageId, signingKey.alias, startUrl, versions. Commit it.
+   Check packageId, signingKey.alias, startUrl, versions and that
+   signingKey.path reads "android.keystore". Commit it.
 
 2. Add these GitHub repo secrets (Settings -> Secrets and variables -> Actions):
      TWA_KEYSTORE_B64       base64 of android.keystore:
