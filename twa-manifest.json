@@ -1,0 +1,23 @@
+{
+  "packageId": "dev.tailuge.billiards",
+  "host": "https://billiards.tailuge.workers.dev",
+  "name": "Multiplayer Billiards Lobby",
+  "launcherName": "Billiards",
+  "display": "standalone",
+  "themeColor": "#1A1A1A",
+  "navigationColor": "#1A1A1A",
+  "backgroundColor": "#1A1A1A",
+  "startUrl": "/lobby.html",
+  "iconUrl": "https://billiards.tailuge.workers.dev/assets/icon-512.png",
+  "maskableIconUrl": "https://billiards.tailuge.workers.dev/assets/icon-maskable.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "android.keystore",
+    "alias": "billiards"
+  },
+  "appVersion": "1.0.0",
+  "appVersionCode": 1,
+  "webManifestUrl": "https://billiards.tailuge.workers.dev/manifest.json",
+  "fingerprints": [],
+  "fallbackType": "customtabs"
+}

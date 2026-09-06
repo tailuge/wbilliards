@@ -1,0 +1,63 @@
+name: Build Android TWA
+
+# Manual trigger only. The APK/AAB is a thin TWA shell that loads the deployed
+# PWA live, so nothing from the billiards repo needs to be pulled or rebuilt on
+# web content changes. Rebuild only when twa-manifest.json changes (icons/name/
+# start URL) or when cutting a new Play release (appVersionCode bump).
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Restore signing keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.TWA_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::error::TWA_KEYSTORE_B64 secret not set - run the one-time bootstrap first (see README)"
+            exit 1
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > android.keystore
+
+      # Regenerates the whole Android project from the committed twa-manifest.json,
+      # so the generated project is never checked in.
+      - name: Regenerate Android project from twa-manifest.json
+        run: >-
+          docker run --rm
+          -v "$(pwd)":/app -w /app
+          ghcr.io/googlechromelabs/bubblewrap:latest
+          update --skipVersionUpgrade
+
+      - name: Build signed APK + AAB
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.TWA_KEYSTORE_PASSWORD }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.TWA_KEY_PASSWORD }}
+        run: >-
+          docker run --rm
+          -v "$(pwd)":/app -w /app
+          -e BUBBLEWRAP_KEYSTORE_PASSWORD="$BUBBLEWRAP_KEYSTORE_PASSWORD"
+          -e BUBBLEWRAP_KEY_PASSWORD="$BUBBLEWRAP_KEY_PASSWORD"
+          ghcr.io/googlechromelabs/bubblewrap:latest
+          build --signingKeyPath=android.keystore
+
+      # assetlinks.json (package name + SHA-256 fingerprint) is what you copy into
+      # the billiards repo at dist/.well-known/assetlinks.json.
+      - name: Generate assetlinks.json
+        run: >-
+          docker run --rm
+          -v "$(pwd)":/app -w /app
+          ghcr.io/googlechromelabs/bubblewrap:latest
+          fingerprint generateAssetLinks --output=assetlinks.json
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: twa-release
+          path: |
+            app-release-signed.apk
+            app-release-bundle.aab
+            assetlinks.json
