@@ -46,6 +46,36 @@ else
   echo "warning: python3 not found - set signingKey.path to \"android.keystore\" in twa-manifest.json before committing"
 fi
 
+# Record the signing key's SHA-256 fingerprint in twa-manifest.json so CI can
+# generate a valid assetlinks.json. The fingerprint is public (it is published
+# in the assetlinks file), so committing it is expected - only the keystore file
+# itself and the passwords stay secret.
+ALIAS="$(python3 - <<'PY'
+import json
+print(json.load(open("twa-manifest.json"))["signingKey"]["alias"])
+PY
+)"
+read -rsp "Keystore password (the one you entered at init): " KS_PW
+echo
+if [ -n "$KS_PW" ]; then
+  # Keep keytool's colon-separated form (e.g. AA:BB:...): Bubblewrap's validator
+  # and the assetlinks.json format both require it.
+  SHA="$(docker run --rm -e KS_PW="$KS_PW" -v "$(pwd)":/app -w /app \
+    --entrypoint keytool ghcr.io/googlechromelabs/bubblewrap:latest \
+    -list -v -keystore android.keystore -storepass:env KS_PW -alias "$ALIAS" 2>/dev/null \
+    | awk '/SHA256:/{print $2}')"
+  if [ -n "$SHA" ]; then
+    docker run --rm -v "$(pwd)":/app -w /app \
+      ghcr.io/googlechromelabs/bubblewrap:latest fingerprint add "$SHA"
+    echo "Fingerprint recorded in twa-manifest.json; assetlinks.json generated here (gitignored)."
+  else
+    echo "warning: could not read the keystore fingerprint (wrong password or alias '$ALIAS'?)."
+    echo "Fix later with: bubblewrap fingerprint add <SHA-256-of-your-signing-cert>"
+  fi
+else
+  echo "Skipped fingerprint recording. Fix later with: bubblewrap fingerprint add <SHA-256-of-your-signing-cert>"
+fi
+
 cat <<'EOF'
 
 Bootstrap complete. Next steps:
@@ -53,7 +83,8 @@ Bootstrap complete. Next steps:
 1. Review twa-manifest.json (generated - it replaces the committed draft):
      git diff -- twa-manifest.json
    Check packageId, signingKey.alias, startUrl, versions and that
-   signingKey.path reads "android.keystore". Commit it.
+   signingKey.path reads "android.keystore" and fingerprints is populated.
+   Commit it.
 
 2. Add these GitHub repo secrets (Settings -> Secrets and variables -> Actions):
      TWA_KEYSTORE_B64       base64 of android.keystore:

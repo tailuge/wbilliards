@@ -45,11 +45,27 @@ manager) - losing it means you can never update the published app.
 
 This runs `bubblewrap init` against the live manifest in a scratch directory
 (needs Docker - `docker pull ghcr.io/googlechromelabs/bubblewrap:latest`), then
-copies two files back here and normalizes `signingKey.path` to the relative
-`android.keystore`:
+copies two files back here, normalizes `signingKey.path` to the relative
+`android.keystore`, and records the signing key's SHA-256 fingerprint (it also
+writes a local `assetlinks.json` for inspection):
 
 - `android.keystore` (gitignored - back it up!)
 - `twa-manifest.json` - **review `git diff`, then commit it**
+
+The fingerprint is public info (it is published in `assetlinks.json`), so it is
+committed with the manifest. If you ran an older version of this script without
+the fingerprint step, add it manually:
+
+```bash
+read -rsp 'Keystore password: ' KS_PW; echo
+SHA=$(docker run --rm -e KS_PW="$KS_PW" -v "$(pwd)":/app -w /app --entrypoint keytool \
+  ghcr.io/googlechromelabs/bubblewrap:latest -list -v -keystore android.keystore \
+  -storepass:env KS_PW -alias android 2>/dev/null | awk '/SHA256:/{print $2}')
+docker run --rm -v "$(pwd)":/app -w /app \
+  ghcr.io/googlechromelabs/bubblewrap:latest fingerprint add "$SHA"
+```
+
+(`-alias android` above must match `signingKey.alias` in `twa-manifest.json`.)
 
 When init prompts, use:
 
