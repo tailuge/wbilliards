@@ -27,16 +27,12 @@ jobs:
           fi
           echo "$KEYSTORE_B64" | base64 -d > android.keystore
 
-      # Regenerates the whole Android project from the committed twa-manifest.json,
-      # so the generated project is never checked in.
-      - name: Regenerate Android project from twa-manifest.json
-        run: >-
-          docker run --rm
-          -v "$(pwd)":/app -w /app
-          ghcr.io/googlechromelabs/bubblewrap:latest
-          update --skipVersionUpgrade
-
-      - name: Build signed APK + AAB
+      # Each `docker run` starts from a fresh image whose Android SDK licenses
+      # are not accepted, so gradle/bubblewrap cannot auto-install the missing
+      # build-tools/platforms. Accept licenses in the SAME container invocation
+      # that regenerates and builds (license files live in the container's
+      # filesystem and would be lost by a separate `docker run`).
+      - name: Regenerate project and build signed APK + AAB
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.TWA_KEYSTORE_PASSWORD }}
           BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.TWA_KEY_PASSWORD }}
@@ -45,8 +41,16 @@ jobs:
           -v "$(pwd)":/app -w /app
           -e BUBBLEWRAP_KEYSTORE_PASSWORD="$BUBBLEWRAP_KEYSTORE_PASSWORD"
           -e BUBBLEWRAP_KEY_PASSWORD="$BUBBLEWRAP_KEY_PASSWORD"
+          --entrypoint sh
           ghcr.io/googlechromelabs/bubblewrap:latest
-          build --signingKeyPath=android.keystore
+          -c '
+            set -e
+            SDK=/root/.bubblewrap/android_sdk
+            SDKM=$(find "$SDK" -type f -name sdkmanager 2>/dev/null | head -n1)
+            yes | "$SDKM" --sdk_root="$SDK" --licenses >/dev/null
+            bubblewrap update --skipVersionUpgrade
+            bubblewrap build --signingKeyPath=android.keystore
+          '
 
       # assetlinks.json (package name + SHA-256 fingerprint) is what you copy into
       # the billiards repo at dist/.well-known/assetlinks.json.
