@@ -6,6 +6,11 @@ name: Build Android TWA
 # start URL) or when cutting a new Play release (appVersionCode bump).
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag (e.g., v1.0.0)'
+        required: true
+        type: string
 
 jobs:
   build:
@@ -13,7 +18,7 @@ jobs:
     # Least privilege: the token is only used by checkout. Secrets are real
     # only as runner env vars - never committed - so a public repo is fine.
     permissions:
-      contents: read
+      contents: write
     steps:
       - uses: actions/checkout@v5
 
@@ -69,3 +74,14 @@ jobs:
             app-release-signed.apk
             app-release-bundle.aab
             assetlinks.json
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          files: |
+            app-release-signed.apk
+            app-release-bundle.aab
+            assetlinks.json
+          draft: false
+          prerelease: false
