@@ -19,6 +19,16 @@ SITE_URL="${1:-https://billiards.tailuge.workers.dev}"
 BOOT_DIR="$(mktemp -d)"
 
 echo "Scratch dir (kept, not deleted): $BOOT_DIR"
+cat <<'EOF'
+
+NOTE: the init wizard asks for TWO passwords ("Password for the Key Store:"
+then "Password for the Key:"), but keytool IGNORES the second one for PKCS12
+keystores (the default since JDK 9) - the private key is protected only by the
+keystore password. Enter the SAME password at both prompts, and later store
+that one password in BOTH GitHub secrets (TWA_KEYSTORE_PASSWORD and
+TWA_KEY_PASSWORD). Using two different passwords here causes an apksigner
+"Wrong password?" failure at build time (bubblewrap issue #693).
+EOF
 docker run --rm -it \
   -v "$BOOT_DIR":/app -w /app \
   ghcr.io/googlechromelabs/bubblewrap:latest \
@@ -55,7 +65,7 @@ import json
 print(json.load(open("twa-manifest.json"))["signingKey"]["alias"])
 PY
 )"
-read -rsp "Keystore password (the one you entered at init): " KS_PW
+read -rsp "Keystore password (the one password you used at init): " KS_PW
 echo
 if [ -n "$KS_PW" ]; then
   # Keep keytool's colon-separated form (e.g. AA:BB:...): Bubblewrap's validator
@@ -91,7 +101,9 @@ Bootstrap complete. Next steps:
                               base64 -w0 android.keystore        # GNU/Linux
                               base64 android.keystore | tr -d '\n'  # macOS
      TWA_KEYSTORE_PASSWORD  keystore password you entered at init
-     TWA_KEY_PASSWORD       key password you entered at init
+     TWA_KEY_PASSWORD       the SAME value as TWA_KEYSTORE_PASSWORD (PKCS12
+                            has no separate key password - a different value
+                            here fails the build with "Wrong password?")
 
 3. Run the "Build Android TWA" workflow from the Actions tab. Artifacts:
      app-release-signed.apk   sideload test
