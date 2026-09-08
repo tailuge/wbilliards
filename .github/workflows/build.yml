@@ -3,12 +3,17 @@ name: Build Android TWA
 # Manual trigger only. The APK/AAB is a thin TWA shell that loads the deployed
 # PWA live, so nothing from the billiards repo needs to be pulled or rebuilt on
 # web content changes. Rebuild only when twa-manifest.json changes (icons/name/
-# start URL) or when cutting a new Play release (appVersionCode bump).
+# start URL) or when cutting a new release.
+#
+# Versioning is tag-driven: run this workflow with release_tag=vX.Y.Z and the
+# APK's versionName/versionCode are derived automatically (no manual edits to
+# twa-manifest.json). The signed APK is uploaded under the fixed name
+# Billiards.apk, which is what the Obtainium catalog config points at.
 on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Release tag (e.g., v1.0.0)'
+        description: 'Release tag, e.g. v1.0.1 (sets versionName; versionCode = commit count)'
         required: true
         type: string
 
@@ -21,6 +26,12 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v5
+
+      # Monotonic integer for Android's versionCode: total commits on main.
+      # Must run before the build step, which consumes it as VERSION_CODE.
+      - name: Count commits for versionCode
+        id: ghcount
+        run: echo "commits=$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Restore signing keystore
         env:
@@ -37,15 +48,24 @@ jobs:
       # build-tools/platforms. Accept licenses in the SAME container invocation
       # that regenerates and builds (license files live in the container's
       # filesystem and would be lost by a separate `docker run`).
+      # Tag-driven versioning: stamp versionName=<tag without v> and
+      # versionCode=<commit count> into the generated build.gradle right before
+      # building (bubblewrap update --skipVersionUpgrade would otherwise keep
+      # the frozen manifest version). Commit count only ever grows, so every
+      # release tag yields a strictly increasing versionCode.
       - name: Regenerate project and build signed APK + AAB
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.TWA_KEYSTORE_PASSWORD }}
           BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.TWA_KEY_PASSWORD }}
+          VERSION_NAME: ${{ inputs.release_tag }}
+          VERSION_CODE: ${{ steps.ghcount.outputs.commits }}
         run: >-
           docker run --rm
           -v "$(pwd)":/app -w /app
           -e BUBBLEWRAP_KEYSTORE_PASSWORD="$BUBBLEWRAP_KEYSTORE_PASSWORD"
           -e BUBBLEWRAP_KEY_PASSWORD="$BUBBLEWRAP_KEY_PASSWORD"
+          -e VERSION_NAME="$VERSION_NAME"
+          -e VERSION_CODE="$VERSION_CODE"
           --entrypoint sh
           ghcr.io/googlechromelabs/bubblewrap:latest
           -c '
@@ -54,6 +74,9 @@ jobs:
             SDKM=$(find "$SDK" -type f -name sdkmanager 2>/dev/null | head -n1)
             yes | "$SDKM" --sdk_root="$SDK" --licenses >/dev/null
             bubblewrap update --skipVersionUpgrade
+            TAG="${VERSION_NAME#v}"
+            sed -i "s/versionName \"[^\"]*\"/versionName \"$TAG\"/" app/build.gradle
+            sed -i "s/versionCode [0-9]\+/versionCode $VERSION_CODE/" app/build.gradle
             bubblewrap build --signingKeyPath=android.keystore
           '
 
@@ -66,12 +89,14 @@ jobs:
           ghcr.io/googlechromelabs/bubblewrap:latest
           fingerprint generateAssetLinks --output=assetlinks.json
 
+      # Fixed asset name: every release publishes Billiards.apk, so Obtainium
+      # (and humans) always find the same download regardless of version.
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
           name: twa-release
           path: |
-            app-release-signed.apk
+            Billiards.apk
             app-release-bundle.aab
             assetlinks.json
 
@@ -80,7 +105,7 @@ jobs:
         with:
           tag_name: ${{ inputs.release_tag }}
           files: |
-            app-release-signed.apk
+            Billiards.apk
             app-release-bundle.aab
             assetlinks.json
           draft: false

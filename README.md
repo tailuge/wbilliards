@@ -6,12 +6,14 @@ Play the game at [billiards.tailuge.workers.dev](https://billiards.tailuge.worke
 
 ## Install on Android
 
-1. Download `app-release-signed.apk` from the [latest release](../../releases/latest).
+1. Download `Billiards.apk` from the [latest release](../../releases/latest).
 2. On your Android device, open the APK file.
 3. If prompted, enable **Install from unknown sources** for your browser/file manager.
 4. Tap **Install**.
 
 The app opens the live game fullscreen — no game code is bundled, it's served from the web.
+
+Also available on [Obtainium](https://apps.obtainium.imranr.dev) (after the catalog PR merges) — add `https://github.com/tailuge/wbilliards` as a GitHub source in the app.
 
 ## For developers
 

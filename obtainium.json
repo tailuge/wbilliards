@@ -1,0 +1,37 @@
+{
+  "meta_version": 1,
+  "app": {
+    "id": "dev.tailuge.billiards",
+    "url": "https://github.com/tailuge/wbilliards",
+    "author": "tailuge",
+    "name": "Billiards",
+    "description": "Free multiplayer lobby for Billiards. Find matches, challenge players, and play realistic pool online. This is the official Trusted Web Activity wrapper for billiards.tailuge.workers.dev.",
+    "icon": "https://billiards.tailuge.workers.dev/assets/icon-512.png",
+    "categories": [
+      "games",
+      "sports",
+      "entertainment"
+    ],
+    "additionalSettings": "{}"
+  },
+  "obtainium_entry": {
+    "placement": "public/data/apps/simple/dev.tailuge.billiards.json",
+    "config": {
+      "id": "dev.tailuge.billiards",
+      "url": "https://github.com/tailuge/wbilliards",
+      "author": "tailuge",
+      "name": "Billiards",
+      "description": "Free multiplayer lobby for Billiards. Find matches, challenge players, and play realistic pool online.",
+      "icon": "https://billiards.tailuge.workers.dev/assets/icon-512.png"
+    },
+    "release_assets": {
+      "apk": "https://github.com/tailuge/wbilliards/releases/latest/download/Billiards.apk",
+      "aab": "https://github.com/tailuge/wbilliards/releases/latest/download/app-release-bundle.aab"
+    },
+    "notes": [
+      "Simple config: plain GitHub source, default settings, stable releases only.",
+      "Copy the 'config' object above into the fork's public/data/apps/simple/ directory.",
+      "Deep link: obtainium://app/{\"id\":\"dev.tailuge.billiards\",\"url\":\"https://github.com/tailuge/wbilliards\",\"author\":\"tailuge\",\"name\":\"Billiards\"}"
+    ]
+  }
+}
