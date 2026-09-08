@@ -80,6 +80,11 @@ jobs:
             bubblewrap build --signingKeyPath=android.keystore
           '
 
+      # bubblewrap always emits app-release-signed.apk; publish it under the
+      # fixed name that the Obtainium catalog entry and docs point at.
+      - name: Rename APK to fixed release name
+        run: mv app-release-signed.apk Billiards.apk
+
       # assetlinks.json (package name + SHA-256 fingerprint) is what you copy into
       # the billiards repo at dist/.well-known/assetlinks.json.
       - name: Generate assetlinks.json

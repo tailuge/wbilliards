@@ -1,28 +1,30 @@
 {
-  "meta_version": 1,
+  "meta_version": 2,
   "app": {
     "id": "dev.tailuge.billiards",
     "url": "https://github.com/tailuge/wbilliards",
     "author": "tailuge",
     "name": "Billiards",
     "description": "Free multiplayer lobby for Billiards. Find matches, challenge players, and play realistic pool online. This is the official Trusted Web Activity wrapper for billiards.tailuge.workers.dev.",
-    "icon": "https://billiards.tailuge.workers.dev/assets/icon-512.png",
-    "categories": [
-      "games",
-      "sports",
-      "entertainment"
-    ],
-    "additionalSettings": "{}"
+    "icon": "https://billiards.tailuge.workers.dev/assets/icon-512.png"
   },
   "obtainium_entry": {
     "placement": "public/data/apps/simple/dev.tailuge.billiards.json",
-    "config": {
-      "id": "dev.tailuge.billiards",
-      "url": "https://github.com/tailuge/wbilliards",
-      "author": "tailuge",
-      "name": "Billiards",
-      "description": "Free multiplayer lobby for Billiards. Find matches, challenge players, and play realistic pool online.",
-      "icon": "https://billiards.tailuge.workers.dev/assets/icon-512.png"
+    "file": {
+      "config": {
+        "id": "dev.tailuge.billiards",
+        "url": "https://github.com/tailuge/wbilliards",
+        "author": "tailuge",
+        "name": "Billiards"
+      },
+      "icon": "https://billiards.tailuge.workers.dev/assets/icon-512.png",
+      "categories": [
+        "games",
+        "sports_and_health"
+      ],
+      "description": {
+        "en": "Free multiplayer lobby for Billiards. Find matches, challenge players, and play realistic pool online. Official Trusted Web Activity wrapper for billiards.tailuge.workers.dev — the app is a thin shell that opens the live game fullscreen."
+      }
     },
     "release_assets": {
       "apk": "https://github.com/tailuge/wbilliards/releases/latest/download/Billiards.apk",
@@ -30,7 +32,8 @@
     },
     "notes": [
       "Simple config: plain GitHub source, default settings, stable releases only.",
-      "Copy the 'config' object above into the fork's public/data/apps/simple/ directory.",
+      "Schema verified against existing catalog entries (config/id/url/author/name + top-level icon, categories, description.en).",
+      "Categories must be slugs from public/data/categories.json in the apps repo.",
       "Deep link: obtainium://app/{\"id\":\"dev.tailuge.billiards\",\"url\":\"https://github.com/tailuge/wbilliards\",\"author\":\"tailuge\",\"name\":\"Billiards\"}"
     ]
   }
